@@ -14,11 +14,29 @@ connectDB();
 // Secure headers with Helmet middleware
 app.use(helmet());
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://task-trek-seven.vercel.app",
+];
+
+if (process.env.FRONTEND_URL) {
+  const cleanedUrl = process.env.FRONTEND_URL.replace(/\/$/, "");
+  if (!allowedOrigins.includes(cleanedUrl)) {
+    allowedOrigins.push(cleanedUrl);
+  }
+}
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // HTTP methods allowed
-    credentials: true, // <-- If you want to allow cookies/auth headers (optional)
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
   })
 );
 
