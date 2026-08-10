@@ -1,3 +1,5 @@
+import Button from "./Button";
+
 export default function ConfirmModal({
   isOpen,
   onClose,
@@ -11,16 +13,17 @@ export default function ConfirmModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-gray-800 w-full max-w-md rounded shadow-lg border border-gray-700 text-white p-6 relative">
+      <div className="bg-gray-900 w-full max-w-md rounded-lg shadow-lg border border-gray-800 text-white p-6 relative">
         <div className="flex items-center space-x-3 mb-4">
           {/* Warning SVG Icon */}
-          <div className="bg-red-900/30 p-2.5 rounded-full border border-red-900/50 shrink-0">
+          <div className="bg-red-950/20 p-2.5 rounded-full border border-red-900/30 shrink-0">
             <svg
-              className="w-6 h-6 text-red-500"
+              className="w-6 h-6 text-red-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -30,37 +33,30 @@ export default function ConfirmModal({
               />
             </svg>
           </div>
-          <h3 className="text-xl font-bold">{title || "Are you sure?"}</h3>
+          <h3 className="text-xl font-bold tracking-tight">{title || "Are you sure?"}</h3>
         </div>
 
-        <p className="text-gray-300 text-sm mb-6 break-words">
+        <p className="text-gray-400 text-sm mb-6 break-words leading-relaxed">
           {message || "This action cannot be undone."}
         </p>
 
         <div className="flex space-x-3 justify-end">
-          <button
-            type="button"
+          <Button
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded text-sm transition font-medium"
+            variant="secondary"
+            size="md"
           >
             Cancel
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={onConfirm}
-            disabled={isSubmitting}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded text-sm transition font-semibold flex items-center space-x-1"
+            loading={isSubmitting}
+            variant="danger"
+            size="md"
           >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                <span>Processing...</span>
-              </>
-            ) : (
-              <span>{confirmText || "Delete"}</span>
-            )}
-          </button>
+            {confirmText || "Delete"}
+          </Button>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,12 +11,19 @@ import {
 import TaskCard from "../components/TaskCard";
 import SkeletonLoader from "../components/SkeletonLoader";
 import ConfirmModal from "../components/ConfirmModal";
+import Input from "../components/Input";
+import Textarea from "../components/Textarea";
+import Select from "../components/Select";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
+import Button from "../components/Button";
 import toast from "react-hot-toast";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorState, setErrorState] = useState(null);
 
   // Search, Filter, Sort States
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,29 +50,30 @@ export default function Dashboard() {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      if (!user) return;
-      try {
-        const data = await getTasks();
-        setTasks(data);
-      } catch (err) {
-        console.error("Failed to fetch tasks:", err);
-        // Map common errors
-        if (err.response?.status === 401) {
-          toast.error("Session expired. Please sign in again.");
-          logout();
-          navigate("/login");
-        } else {
-          toast.error("Could not load tasks. Please verify your connection.");
-        }
-      } finally {
-        setLoading(false);
+  const fetchTasks = useCallback(async () => {
+    if (!user) return;
+    setErrorState(null);
+    setLoading(true);
+    try {
+      const data = await getTasks();
+      setTasks(data);
+    } catch (err) {
+      console.error("Failed to fetch tasks:", err);
+      const code = err.response?.status || (err.message === "Network Error" ? "network" : 500);
+      const message = err.response?.data?.message;
+      setErrorState({ code, message });
+      if (err.response?.status === 401) {
+        logout();
+        navigate("/login");
       }
-    };
-
-    fetchTasks();
+    } finally {
+      setLoading(false);
+    }
   }, [user, logout, navigate]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
   const handleLogout = () => {
     logout();
@@ -80,7 +88,7 @@ export default function Dashboard() {
   // Central Input Validator
   const validateInputs = (title, description) => {
     if (!title || !title.trim()) {
-      return "Title is required and cannot be empty.";
+      return "Title is required.";
     }
     if (title.length > 100) {
       return "Title cannot exceed 100 characters.";
@@ -238,282 +246,248 @@ export default function Dashboard() {
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
+  const filterOptions = [
+    { value: "all", label: "All Tasks" },
+    { value: "pending", label: "Pending" },
+    { value: "completed", label: "Completed" },
+  ];
+
+  const sortOptions = [
+    { value: "newest", label: "Newest First" },
+    { value: "oldest", label: "Oldest First" },
+    { value: "alphabetical", label: "Alphabetical (A-Z)" },
+  ];
+
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
-      {/* Sidebar navigation */}
-      <div className="w-full md:w-64 bg-gray-900 border-b md:border-b-0 md:border-r border-gray-800 p-6 flex flex-row md:flex-col justify-between items-center md:items-stretch shrink-0">
-        <div className="md:w-full">
-          <div className="flex items-center space-x-2 mb-0 md:mb-8">
-            <svg
-              className="w-8 h-8 text-blue-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-            <h1 className="text-xl md:text-2xl font-black text-white tracking-wide">
-              TaskTrek
-            </h1>
-          </div>
-          <p className="hidden md:block text-sm text-gray-400 mt-2">
-            👋 Welcome, <span className="text-white font-semibold">{user?.user?.name || "User"}</span>
-          </p>
+    <div className="min-h-screen bg-bg-app text-white flex flex-col">
+      {/* Top navigation */}
+      <header className="bg-bg-surface border-b border-border-ui px-4 md:px-8 py-4 flex items-center justify-between shadow-sm z-30">
+        <div className="flex items-center space-x-2.5">
+          <svg
+            className="w-7 h-7 text-blue-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+            />
+          </svg>
+          <span className="text-xl font-black tracking-wide text-white">TaskTrek</span>
         </div>
-        <div className="flex items-center space-x-4 md:space-x-0 md:w-full">
-          <p className="md:hidden text-sm text-gray-400">
-            👋 <span className="text-white font-semibold">{user?.user?.name || "User"}</span>
-          </p>
-          <button
+        <div className="flex items-center space-x-6">
+          <span className="text-small text-text-muted hidden sm:inline">
+            Active User: <span className="text-white font-semibold">{user?.user?.name}</span>
+          </span>
+          <Button
             onClick={handleLogout}
-            className="bg-gray-800 hover:bg-red-900/40 hover:text-red-400 border border-gray-700 hover:border-red-900/50 text-gray-300 py-1.5 md:py-2 px-3 md:px-4 rounded text-xs md:text-sm font-semibold transition cursor-pointer"
+            variant="secondary"
+            size="sm"
+            ariaLabel="Logout from account"
           >
             Logout
-          </button>
+          </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Task Area */}
-      <div className="flex-1 p-4 md:p-8 overflow-auto">
-        <div className="max-w-6xl mx-auto">
-          {/* Header Greeting & Summary Banner */}
-          <div className="mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Dashboard</h2>
-            <p className="text-gray-400 text-sm">
-              Keep track of your projects and goals dynamically.
+      {/* Main Workspace layout wrapper */}
+      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+        {/* Welcome / Quick action Greeting header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-850 pb-4">
+          <div>
+            <h2 className="text-h1 tracking-tight text-white">Workspace</h2>
+            <p className="text-small text-text-muted mt-1 leading-relaxed">
+              Plan, execute, and monitor your personal tasks and progress indices.
             </p>
           </div>
+          <Button
+            onClick={focusTitleInput}
+            variant="primary"
+            size="sm"
+            className="w-fit cursor-pointer shrink-0"
+          >
+            Quick Create
+          </Button>
+        </div>
 
-          {/* Metric Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <div className="bg-gray-900 p-4 rounded-lg border border-gray-850 shadow-sm">
-              <p className="text-gray-400 text-xs uppercase font-semibold tracking-wider">
-                Total Tasks
-              </p>
-              <h3 className="text-3xl font-black mt-1 text-white">{tasks.length}</h3>
-            </div>
-            <div className="bg-gray-900 p-4 rounded-lg border border-gray-850 shadow-sm">
-              <p className="text-gray-400 text-xs uppercase font-semibold tracking-wider">
-                Pending Tasks
-              </p>
-              <h3 className="text-3xl font-black mt-1 text-yellow-500">
-                {tasks.filter((t) => !t.completed).length}
-              </h3>
-            </div>
-            <div className="bg-gray-900 p-4 rounded-lg border border-gray-850 shadow-sm">
-              <p className="text-gray-400 text-xs uppercase font-semibold tracking-wider">
-                Completed Tasks
-              </p>
-              <h3 className="text-3xl font-black mt-1 text-green-500">
-                {tasks.filter((t) => t.completed).length}
-              </h3>
-            </div>
+        {/* Statistics Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="bg-bg-surface p-5 rounded-lg border border-border-ui shadow-sm flex flex-col justify-between">
+            <span className="text-caption text-text-muted font-bold uppercase tracking-wider">
+              Total Tasks
+            </span>
+            <span className="text-display mt-2 text-white">{tasks.length}</span>
+          </div>
+          <div className="bg-bg-surface p-5 rounded-lg border border-border-ui shadow-sm flex flex-col justify-between">
+            <span className="text-caption text-yellow-500 font-bold uppercase tracking-wider">
+              Pending
+            </span>
+            <span className="text-display mt-2 text-yellow-500">
+              {tasks.filter((t) => !t.completed).length}
+            </span>
+          </div>
+          <div className="bg-bg-surface p-5 rounded-lg border border-border-ui shadow-sm flex flex-col justify-between">
+            <span className="text-caption text-green-400 font-bold uppercase tracking-wider">
+              Completed
+            </span>
+            <span className="text-display mt-2 text-green-400">
+              {tasks.filter((t) => t.completed).length}
+            </span>
+          </div>
+        </div>
+
+        {/* Task Workspace Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Create Task Form Panel */}
+          <div className="lg:col-span-1 bg-bg-surface p-6 rounded-lg border border-border-ui shadow-sm h-fit">
+            <h3 className="text-h3 font-bold mb-5 border-b border-border-ui pb-2.5 text-white">
+              Create New Task
+            </h3>
+            <form onSubmit={handleCreateTask} className="space-y-4">
+              <Input
+                id="task-title-input"
+                name="title"
+                label="Task Title *"
+                type="text"
+                value={newTask.title}
+                onChange={handleFormChange}
+                placeholder="E.g. Refactor API layer"
+                required
+              />
+
+              <Textarea
+                id="task-description-input"
+                name="description"
+                label="Description"
+                value={newTask.description}
+                onChange={handleFormChange}
+                placeholder="Details or specific checklist items..."
+                rows={3}
+              />
+
+              <Button
+                type="submit"
+                loading={submitting}
+                variant="primary"
+                size="md"
+                className="w-full"
+              >
+                Create Task
+              </Button>
+            </form>
           </div>
 
-          {/* Workspace Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Create Task Panel */}
-            <div className="lg:col-span-1 bg-gray-900 p-6 rounded-lg border border-gray-850 shadow-sm h-fit">
-              <h3 className="text-lg font-bold mb-4 border-b border-gray-800 pb-2">
-                Create New Task
-              </h3>
-              <form onSubmit={handleCreateTask} className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="task-title-input"
-                    className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1"
-                  >
-                    Title *
-                  </label>
-                  <input
-                    id="task-title-input"
-                    type="text"
-                    name="title"
-                    value={newTask.title}
-                    onChange={handleFormChange}
-                    placeholder="E.g. Code database index"
-                    required
-                    className="w-full p-2.5 rounded bg-gray-950 border border-gray-800 focus:outline-none focus:border-blue-500 text-sm text-white transition placeholder-gray-700"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="task-description-input"
-                    className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1"
-                  >
-                    Description
-                  </label>
-                  <textarea
-                    id="task-description-input"
-                    name="description"
-                    value={newTask.description}
-                    onChange={handleFormChange}
-                    placeholder="Brief notes about the task..."
-                    rows="3"
-                    className="w-full p-2.5 rounded bg-gray-950 border border-gray-800 focus:outline-none focus:border-blue-500 text-sm text-white transition placeholder-gray-700 resize-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded font-semibold text-sm transition flex items-center justify-center space-x-1"
-                >
-                  {submitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <span>Add Task</span>
-                  )}
-                </button>
-              </form>
-            </div>
-
-            {/* Task Controls & Task Grid List */}
-            <div className="lg:col-span-3">
-              {/* Filter controls, sorting and search bar */}
-              <div className="bg-gray-900 p-4 rounded-lg border border-gray-850 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                {/* Search query input */}
-                <div className="relative flex-1">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks by title or details..."
-                    className="w-full pl-9 pr-4 py-2 rounded bg-gray-950 border border-gray-800 focus:outline-none focus:border-blue-500 text-sm text-white placeholder-gray-700 transition"
-                  />
-                </div>
-
-                {/* Filters and sorting order dropdown select components */}
-                <div className="flex flex-wrap items-center gap-3 shrink-0">
-                  <div className="flex items-center space-x-1.5">
-                    <label htmlFor="filter-select" className="text-xs font-semibold text-gray-400">
-                      Filter:
-                    </label>
-                    <select
-                      id="filter-select"
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="p-2 rounded bg-gray-950 border border-gray-800 text-xs text-white focus:outline-none focus:border-blue-500 transition cursor-pointer"
-                    >
-                      <option value="all">All Status</option>
-                      <option value="pending">Pending Only</option>
-                      <option value="completed">Completed Only</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center space-x-1.5">
-                    <label htmlFor="sort-select" className="text-xs font-semibold text-gray-400">
-                      Sort:
-                    </label>
-                    <select
-                      id="sort-select"
-                      value={sortOrder}
-                      onChange={(e) => setSortOrder(e.target.value)}
-                      className="p-2 rounded bg-gray-950 border border-gray-800 text-xs text-white focus:outline-none focus:border-blue-500 transition cursor-pointer"
-                    >
-                      <option value="newest">Newest First</option>
-                      <option value="oldest">Oldest First</option>
-                      <option value="alphabetical">Alphabetical (A-Z)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tasks List Grid */}
-              {loading ? (
-                <SkeletonLoader />
-              ) : filteredTasks.length === 0 ? (
-                <div className="bg-gray-900 border border-gray-850 p-12 rounded-lg text-center shadow-sm">
-                  {/* Clean SVG Illustration (Empty State) */}
+          {/* Task Filters & Task Card Grid list */}
+          <div className="lg:col-span-3 flex flex-col">
+            {/* Filter controls headers bar */}
+            <div className="bg-bg-surface p-4 rounded-lg border border-border-ui shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Search Bar Input */}
+              <div className="relative w-full sm:max-w-xs">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
                   <svg
-                    className="mx-auto h-20 w-20 text-gray-700 mb-4"
+                    className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                     xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
                   >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth="1.5"
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.5"
-                      d="M9 14l2 2 4-4"
+                      strokeWidth="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                     />
                   </svg>
-                  <h4 className="text-xl font-bold text-white mb-2">No tasks to show</h4>
-                  <p className="text-gray-400 text-sm max-w-sm mx-auto mb-6">
-                    {searchQuery || statusFilter !== "all"
-                      ? "Try tweaking your filter selections or search terms."
-                      : "Create your first task on the left panel to begin your journey."}
-                  </p>
-                  {!searchQuery && statusFilter === "all" && (
-                    <button
-                      onClick={focusTitleInput}
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold transition cursor-pointer"
-                    >
-                      Create a Task
-                    </button>
-                  )}
+                </span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search tasks..."
+                  className="w-full pl-9 pr-4 py-2 text-sm rounded bg-gray-950 border border-gray-800 focus:outline-none focus:border-blue-500 text-white placeholder-gray-600 transition focus-ring"
+                />
+              </div>
+
+              {/* Status and Sort selectors */}
+              <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto justify-end">
+                <div className="flex items-center space-x-2 shrink-0">
+                  <Select
+                    id="filter-select"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    options={filterOptions}
+                    className="w-[130px]"
+                  />
                 </div>
-              ) : (
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-                  {filteredTasks.map((task) => (
-                    <TaskCard
-                      key={task._id}
-                      task={task}
-                      onToggleComplete={handleToggleComplete}
-                      onDelete={handleDeleteTrigger}
-                      onEdit={handleOpenEditModal}
-                      isActionLoading={actionLoadingIds.includes(task._id)}
-                    />
-                  ))}
+
+                <div className="flex items-center space-x-2 shrink-0">
+                  <Select
+                    id="sort-select"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                    options={sortOptions}
+                    className="w-[160px]"
+                  />
                 </div>
-              )}
+              </div>
             </div>
+
+            {/* Content states switcher */}
+            {loading ? (
+              <SkeletonLoader />
+            ) : errorState ? (
+              <ErrorState
+                code={errorState.code}
+                message={errorState.message}
+                onRetry={fetchTasks}
+              />
+            ) : filteredTasks.length === 0 ? (
+              <EmptyState
+                title="No tasks match your query"
+                message={
+                  searchQuery || statusFilter !== "all"
+                    ? "Try adjusting your filter selectors or search keywords."
+                    : "Your workspace is empty. Create a task to outline your day."
+                }
+                actionText={!searchQuery && statusFilter === "all" ? "Add First Task" : null}
+                onActionClick={focusTitleInput}
+              />
+            ) : (
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                {filteredTasks.map((task) => (
+                  <TaskCard
+                    key={task._id}
+                    task={task}
+                    onToggleComplete={handleToggleComplete}
+                    onDelete={handleDeleteTrigger}
+                    onEdit={handleOpenEditModal}
+                    isActionLoading={actionLoadingIds.includes(task._id)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Edit Task Modal */}
       {editingTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-gray-800 w-full max-w-lg rounded-lg shadow-lg border border-gray-700 text-white p-6 relative">
+          <div className="bg-bg-surface w-full max-w-lg rounded-lg shadow-lg border border-border-ui text-white p-6 relative">
             <button
               onClick={handleCloseEditModal}
               className="absolute top-4 right-4 text-gray-400 hover:text-white transition text-lg cursor-pointer"
+              aria-label="Close edit task modal"
             >
               ✕
             </button>
-            <h3 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
+            <h3 className="text-xl font-bold mb-4 border-b border-gray-800 pb-2.5">
               Edit Task
             </h3>
 
@@ -524,34 +498,26 @@ export default function Dashboard() {
             )}
 
             <form onSubmit={handleUpdateTask} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={editForm.title}
-                  onChange={handleEditFormChange}
-                  placeholder="Task title"
-                  required
-                  className="w-full p-2.5 rounded bg-gray-900 border border-gray-750 focus:outline-none focus:border-blue-500 text-sm text-white"
-                />
-              </div>
+              <Input
+                id="edit-title-input"
+                name="title"
+                label="Task Title *"
+                type="text"
+                value={editForm.title}
+                onChange={handleEditFormChange}
+                required
+                placeholder="E.g. Refactor API layer"
+              />
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={editForm.description}
-                  onChange={handleEditFormChange}
-                  placeholder="Describe your task..."
-                  rows="4"
-                  className="w-full p-2.5 rounded bg-gray-900 border border-gray-750 focus:outline-none focus:border-blue-500 text-sm text-white resize-none"
-                />
-              </div>
+              <Textarea
+                id="edit-description-input"
+                name="description"
+                label="Description"
+                value={editForm.description}
+                onChange={handleEditFormChange}
+                placeholder="Brief details about the task..."
+                rows={4}
+              />
 
               <div className="flex items-center space-x-2">
                 <input
@@ -571,20 +537,21 @@ export default function Dashboard() {
               </div>
 
               <div className="flex space-x-3 pt-2 justify-end">
-                <button
-                  type="button"
+                <Button
                   onClick={handleCloseEditModal}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-650 text-white rounded text-sm transition"
+                  variant="secondary"
+                  size="md"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={editSubmitting}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded font-semibold text-sm transition"
+                  loading={editSubmitting}
+                  variant="primary"
+                  size="md"
                 >
-                  {editSubmitting ? "Saving..." : "Save Changes"}
-                </button>
+                  Save Changes
+                </Button>
               </div>
             </form>
           </div>

@@ -1,3 +1,11 @@
+import Badge from "./Badge";
+import Button from "./Button";
+
+/**
+ * Premium Task Card Component.
+ * Visually communicates title, description, status, date, and actions.
+ * Enforces strong keyboard accessibility and screen reader support.
+ */
 export default function TaskCard({
   task,
   onToggleComplete,
@@ -14,19 +22,19 @@ export default function TaskCard({
 
   return (
     <div
-      className={`bg-gray-800 p-5 rounded-lg shadow-md hover:shadow-lg border border-gray-700 hover:border-gray-600 flex flex-col justify-between h-full transition relative ${
-        isActionLoading ? "opacity-60 pointer-events-none" : ""
-      }`}
+      className={`bg-gray-900 p-5 rounded-lg shadow-sm border border-gray-800 flex flex-col justify-between h-full transition relative group hover:border-gray-700 ${
+        task.completed ? "opacity-75" : ""
+      } ${isActionLoading ? "opacity-60 pointer-events-none" : ""}`}
     >
       {isActionLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/40 rounded-lg z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-950/40 rounded-lg z-10">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
         </div>
       )}
       <div>
         <div className="flex justify-between items-start mb-3">
           <h3
-            className={`text-lg font-bold ${
+            className={`text-h3 font-bold ${
               task.completed ? "line-through text-gray-500" : "text-white"
             } break-words w-full mr-2`}
           >
@@ -37,8 +45,8 @@ export default function TaskCard({
             <button
               onClick={() => onEdit(task)}
               disabled={isActionLoading}
-              className="text-gray-400 hover:text-blue-400 p-1.5 rounded hover:bg-gray-700 transition"
-              title="Edit Task"
+              aria-label={`Edit task: ${task.title}`}
+              className="text-gray-400 hover:text-blue-400 p-1.5 rounded hover:bg-gray-800 transition focus-ring"
             >
               <svg
                 className="w-4 h-4"
@@ -46,6 +54,7 @@ export default function TaskCard({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -59,8 +68,8 @@ export default function TaskCard({
             <button
               onClick={() => onDelete(task._id)}
               disabled={isActionLoading}
-              className="text-gray-400 hover:text-red-500 p-1.5 rounded hover:bg-gray-700 transition"
-              title="Delete Task"
+              aria-label={`Delete task: ${task.title}`}
+              className="text-gray-400 hover:text-red-400 p-1.5 rounded hover:bg-gray-800 transition focus-ring"
             >
               <svg
                 className="w-4 h-4"
@@ -68,6 +77,7 @@ export default function TaskCard({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -79,44 +89,46 @@ export default function TaskCard({
             </button>
           </div>
         </div>
-        <p className="text-sm text-gray-300 mb-4 break-words whitespace-pre-wrap leading-relaxed">
+        <p
+          className={`text-small mb-4 break-words whitespace-pre-wrap leading-relaxed ${
+            task.completed ? "text-gray-500" : "text-gray-300"
+          }`}
+        >
           {task.description || "No description provided."}
         </p>
       </div>
 
-      <div className="flex flex-col space-y-3 mt-auto pt-3 border-t border-gray-700">
+      <div className="flex flex-col space-y-3 mt-auto pt-3 border-t border-gray-850">
         <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-400">
+          <span className="text-caption text-gray-500 font-medium">
             Created: {formatDate(task.createdAt)}
           </span>
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-              task.completed
-                ? "bg-green-900/30 text-green-400 border border-green-800/50"
-                : "bg-yellow-900/30 text-yellow-500 border border-yellow-800/50"
-            }`}
-          >
+          <Badge variant={task.completed ? "success" : "warning"}>
             {task.completed ? "Completed" : "Pending"}
-          </span>
+          </Badge>
         </div>
 
-        <button
+        <Button
           onClick={() => onToggleComplete(task._id, task.completed)}
           disabled={isActionLoading}
-          className={`w-full text-xs py-2 px-3 rounded font-medium transition flex items-center justify-center space-x-1.5 ${
+          variant={task.completed ? "secondary" : "primary"}
+          size="sm"
+          className="w-full text-xs"
+          ariaLabel={
             task.completed
-              ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
-              : "bg-blue-600 hover:bg-blue-700 text-white"
-          }`}
+              ? `Mark task "${task.title}" as pending`
+              : `Mark task "${task.title}" as complete`
+          }
         >
           {task.completed ? (
-            <>
+            <span className="flex items-center justify-center space-x-1.5">
               <svg
                 className="w-3.5 h-3.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -126,27 +138,23 @@ export default function TaskCard({
                 />
               </svg>
               <span>Mark as Pending</span>
-            </>
+            </span>
           ) : (
-            <>
+            <span className="flex items-center justify-center space-x-1.5">
               <svg
                 className="w-3.5 h-3.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M5 13l4 4L19 7"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
               </svg>
               <span>Mark as Complete</span>
-            </>
+            </span>
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );
