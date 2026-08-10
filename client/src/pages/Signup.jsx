@@ -1,0 +1,73 @@
+import { useState } from "react";
+import axios from "axios";
+
+export default function Signup() {
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      await axios.post("http://localhost:5000/api/users/signup", form);
+      alert("Signup successful! Please login.");
+      setForm({ name: "", email: "", password: "" });
+    } catch (err) {
+      setError(err.response?.data?.message || "Signup failed!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-md mx-auto mt-20 p-6 bg-gray-900 rounded shadow text-white">
+      <h2 className="text-2xl font-bold mb-6">Signup</h2>
+
+      {error && <p className="bg-red-600 p-2 rounded mb-4">{error}</p>}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          name="name"
+          placeholder="Name"
+          value={form.name}
+          onChange={handleChange}
+          required
+          className="w-full p-2 rounded bg-gray-800 border border-gray-700"
+        />
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={form.email}
+          onChange={handleChange}
+          required
+          className="w-full p-2 rounded bg-gray-800 border border-gray-700"
+        />
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          value={form.password}
+          onChange={handleChange}
+          required
+          className="w-full p-2 rounded bg-gray-800 border border-gray-700"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
+        >
+          {loading ? "Signing up..." : "Signup"}
+        </button>
+      </form>
+    </div>
+  );
+}
