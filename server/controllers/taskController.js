@@ -19,9 +19,15 @@ export const createTask = async (req, res, next) => {
 
 export const getTasks = async (req, res, next) => {
   try {
-    const tasks = await Task.find({ user: req.user.id }).sort({
-      createdAt: -1,
-    });
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const skip = (page - 1) * limit;
+
+    const tasks = await Task.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
     res.status(200).json(tasks);
   } catch (error) {
     next(error);

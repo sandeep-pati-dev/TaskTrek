@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState } from "react";
 import { getUser, setUser as saveUser, removeUser } from "../utils/token";
 
 // 1. Create context
@@ -6,16 +6,10 @@ export const AuthContext = createContext();
 
 // 2. Provide context
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [initializing, setInitializing] = useState(true);
-
-  useEffect(() => {
-    const restoredUser = getUser();
-    if (restoredUser) {
-      setUser(restoredUser);
-    }
-    setInitializing(false);
-  }, []);
+  const [user, setUser] = useState(() => {
+    return getUser() || null;
+  });
+  const [initializing] = useState(false);
 
   // Login function
   const login = (userData) => {
