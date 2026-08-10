@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect } from "react";
+import { getUser, setUser as saveUser, removeUser } from "../utils/token";
 
 // 1. Create context
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 // 2. Provide context
 export const AuthProvider = ({ children }) => {
@@ -9,29 +10,23 @@ export const AuthProvider = ({ children }) => {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    } catch (err) {
-      console.error("Failed to restore auth session:", err);
-      localStorage.removeItem("user");
-    } finally {
-      setInitializing(false);
+    const restoredUser = getUser();
+    if (restoredUser) {
+      setUser(restoredUser);
     }
+    setInitializing(false);
   }, []);
 
   // Login function
   const login = (userData) => {
     setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+    saveUser(userData);
   };
 
   // Logout function
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("user");
+    removeUser();
   };
 
   return (
@@ -40,5 +35,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => useContext(AuthContext);

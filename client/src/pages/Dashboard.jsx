@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import {
+  getTasks,
+  createTask,
+  updateTask,
+  toggleTaskCompletion,
+  deleteTask,
+} from "../services/tasks";
 import TaskCard from "../components/TaskCard";
 
 export default function Dashboard() {
@@ -28,14 +34,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchTasks = async () => {
-      if (!user?.token) return;
+      if (!user) return;
       try {
-        const res = await axios.get("http://localhost:5000/api/tasks", {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        });
-        setTasks(res.data);
+        const data = await getTasks();
+        setTasks(data);
       } catch (err) {
         console.error("Failed to fetch tasks:", err);
       } finally {
@@ -83,19 +85,11 @@ export default function Dashboard() {
     setSubmitting(true);
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/tasks",
-        {
-          title: newTask.title.trim(),
-          description: newTask.description.trim(),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        }
-      );
-      setTasks((prev) => [res.data, ...prev]);
+      const data = await createTask({
+        title: newTask.title.trim(),
+        description: newTask.description.trim(),
+      });
+      setTasks((prev) => [data, ...prev]);
       setNewTask({ title: "", description: "" });
       setSuccessMessage("Task created successfully!");
       setTimeout(() => setSuccessMessage(""), 3000);
@@ -113,17 +107,9 @@ export default function Dashboard() {
     setActionLoadingIds((prev) => [...prev, taskId]);
 
     try {
-      const res = await axios.put(
-        `http://localhost:5000/api/tasks/${taskId}`,
-        { completed: !currentCompleted },
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        }
-      );
+      const data = await toggleTaskCompletion(taskId, currentCompleted);
       setTasks((prev) =>
-        prev.map((t) => (t._id === taskId ? res.data : t))
+        prev.map((t) => (t._id === taskId ? data : t))
       );
     } catch (err) {
       console.error("Failed to update task status:", err);
@@ -142,11 +128,7 @@ export default function Dashboard() {
     setActionLoadingIds((prev) => [...prev, taskId]);
 
     try {
-      await axios.delete(`http://localhost:5000/api/tasks/${taskId}`, {
-        headers: {
-          Authorization: `Bearer ${user?.token}`,
-        },
-      });
+      await deleteTask(taskId);
       setTasks((prev) => prev.filter((t) => t._id !== taskId));
     } catch (err) {
       console.error("Failed to delete task:", err);
@@ -190,21 +172,13 @@ export default function Dashboard() {
     setEditSubmitting(true);
 
     try {
-      const res = await axios.put(
-        `http://localhost:5000/api/tasks/${editingTask._id}`,
-        {
-          title: editForm.title.trim(),
-          description: editForm.description.trim(),
-          completed: editForm.completed,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        }
-      );
+      const data = await updateTask(editingTask._id, {
+        title: editForm.title.trim(),
+        description: editForm.description.trim(),
+        completed: editForm.completed,
+      });
       setTasks((prev) =>
-        prev.map((t) => (t._id === editingTask._id ? res.data : t))
+        prev.map((t) => (t._id === editingTask._id ? data : t))
       );
       handleCloseEditModal();
     } catch (err) {

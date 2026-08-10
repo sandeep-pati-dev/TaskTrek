@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import axios from "axios"; // ← don't forget this import if it's not there
+import { loginUser } from "../services/auth";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -21,11 +21,8 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/users/login",
-        form
-      );
-      const { token, user } = res.data;
+      const data = await loginUser(form);
+      const { token, user } = data;
 
       // ✅ Use the context login function to store user data
       login({ user, token });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import { signupUser } from "../services/auth";
 
 export default function Signup() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -16,7 +16,7 @@ export default function Signup() {
     setError("");
 
     try {
-      await axios.post("http://localhost:5000/api/users/signup", form);
+      await signupUser(form);
       alert("Signup successful! Please login.");
       setForm({ name: "", email: "", password: "" });
     } catch (err) {
