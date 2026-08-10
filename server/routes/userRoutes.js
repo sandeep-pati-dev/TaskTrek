@@ -5,11 +5,12 @@ import {
   signupSchema,
   loginSchema,
 } from "../middleware/validationMiddleware.js";
+import { authRateLimiter } from "../middleware/rateLimitMiddleware.js";
 
 const router = express.Router();
 
-router.post("/signup", validateSchema(signupSchema), signUpUser);
+router.post("/signup", authRateLimiter, validateSchema(signupSchema), signUpUser);
 
-router.post("/login", validateSchema(loginSchema), loginUser);
+router.post("/login", authRateLimiter, validateSchema(loginSchema), loginUser);
 
 export default router;

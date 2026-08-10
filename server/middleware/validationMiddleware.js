@@ -1,3 +1,18 @@
+import mongoose from "mongoose";
+
+/**
+ * Validates that a route parameter is a valid MongoDB ObjectId.
+ */
+export const validateObjectId = (paramName = "id") => {
+  return (req, res, next) => {
+    const id = req.params[paramName];
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+    next();
+  };
+};
+
 /**
  * Reusable schema validator middleware that validates the request body properties.
  */

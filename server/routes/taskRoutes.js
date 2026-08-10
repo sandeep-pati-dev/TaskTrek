@@ -11,6 +11,7 @@ import {
   validateSchema,
   createTaskSchema,
   updateTaskSchema,
+  validateObjectId,
 } from "../middleware/validationMiddleware.js";
 
 const router = express.Router();
@@ -19,7 +20,7 @@ router.use(authMiddleware);
 
 router.post("/", validateSchema(createTaskSchema), createTask);
 router.get("/", getTasks);
-router.put("/:id", validateSchema(updateTaskSchema), updateTask);
-router.delete("/:id", deleteTask);
+router.put("/:id", validateObjectId("id"), validateSchema(updateTaskSchema), updateTask);
+router.delete("/:id", validateObjectId("id"), deleteTask);
 
 export default router;
